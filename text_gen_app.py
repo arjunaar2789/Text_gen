@@ -7,8 +7,6 @@ Original file is located at
     https://colab.research.google.com/github/arjunaar2789/arjunaar2789/blob/main/HuggingFace_text_generation.ipynb
 """
 
-pip install streamlit
-
 import streamlit as st
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
