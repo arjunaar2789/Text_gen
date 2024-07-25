@@ -7,43 +7,68 @@ Original file is located at
     https://colab.research.google.com/github/arjunaar2789/arjunaar2789/blob/main/HuggingFace_text_generation.ipynb
 """
 
+# streamlit_gpt2_text_generator.py
+
 import streamlit as st
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-#Caching the model
-@st.cache_resource()
-def local_model(model_name='gpt2-large'):
-  tokenizer=GPT2Tokenizer.from_pretrained(model_name)
-  model=GPT2LMHeadModel.from_pretrained(model_name,pad_token_id=tokenizer.eos_token_id)
-  return model,tokenizer
+@st.cache(allow_output_mutation=True)
+def load_model(model_name='gpt2-large'):
+    try:
+        tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+        model = GPT2LMHeadModel.from_pretrained(model_name, pad_token_id=tokenizer.eos_token_id)
+        return tokenizer, model
+    except Exception as e:
+        st.error(f"Error loading model and tokenizer: {e}")
+        return None, None
 
-def generate_text(prompt,model_name='gpt2-large',max_length=1000,num_beams=5, temperature=1.0, top_k=50, top_p=0.95):
-  tokenizer,model_name=load_model(model_name)
-  input_ids=tokenizer.encode(prompt,return_tensors='pt')
-  output=model.generate(input_ids,max_length=max_length,num_beams=num_beams,temperature=temperature,top_k=top_k,top_p=top_p,no_repeat_ngram_size=2,early_stopping=True)
-  return tokenizer.decode(output[0],skip_special_tokens=True)
+def generate_text(prompt, tokenizer, model, max_length=100, num_beams=5, temperature=1.0, top_k=50, top_p=0.95):
+    try:
+        input_ids = tokenizer.encode(prompt, return_tensors='pt')
+        output = model.generate(
+            input_ids, 
+            max_length=max_length, 
+            num_beams=num_beams, 
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            no_repeat_ngram_size=2, 
+            early_stopping=True
+        )
+        return tokenizer.decode(output[0], skip_special_tokens=True)
+    except Exception as e:
+        st.error(f"Error generating text: {e}")
+        return ""
 
 # Streamlit app
-st.title('GPT-2 Text Generator')
-st.write('Enter a prompt and configure the generation parameters:')
-prompt=st.text_input('Prompt','')
-max_length=st.slider('Max length',50,1000,100)
-num_beams=st.slider('Number of beams',1,10,5)
-temperature=st.slider('Temperature',0.1,2.0,1.0)
-top_k=st.slider('Top K',0,50,100)
-top_p=st.slider('Top P',0.0,1.0,0.95)
+st.title("GPT-2 Text Generator")
 
-if st.button('Generate Text'):
-  with st.spinner('Generating text...'):
-    try:
-      generated_text=generate_text(prompt,max_length=max_length,num_beams=num_beams,temperature=temperature,top_k=top_k,top_p=top_p)
-      st.write('Generated Text:')
-      st.write(generated_text)
+st.write("Enter a prompt and configure the generation parameters:")
 
-      if st.button('Save to File'):
-        with open('generated_text.txt','w') as file:
-          file.write(generated_text)
-        st.success('Text saved!')
-    except Exception as e:
-      st.error('Error: {e}')
+prompt = st.text_area("Prompt", "")  # No default value
+
+max_length = st.slider("Max Length", 50, 1000, 100)
+num_beams = st.slider("Number of Beams", 1, 10, 5)
+temperature = st.slider("Temperature", 0.1, 2.0, 1.0)
+top_k = st.slider("Top-k", 0, 100, 50)
+top_p = st.slider("Top-p", 0.0, 1.0, 0.95)
+
+if st.button("Generate Text"):
+    with st.spinner("Generating text..."):
+        tokenizer, model = load_model()
+        if tokenizer is None or model is None:
+            st.error("Failed to load model and tokenizer.")
+        else:
+            generated_text = generate_text(prompt, tokenizer, model, max_length=max_length, num_beams=num_beams, temperature=temperature, top_k=top_k, top_p=top_p)
+            if generated_text:
+                st.write("Generated Text:")
+                st.write(generated_text)
+                
+                if st.button("Save to File"):
+                    with open("generated_text.txt", "w") as file:
+                        file.write(generated_text)
+                    st.success("Text saved to generated_text.txt")
+            else:
+                st.error("Text generation failed.")
+
 
