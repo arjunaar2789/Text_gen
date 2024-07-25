@@ -12,7 +12,7 @@ Original file is located at
 import streamlit as st
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-@st.cache(allow_output_mutation=True)
+@st.cache_resource
 def load_model(model_name='gpt2-large'):
     try:
         tokenizer = GPT2Tokenizer.from_pretrained(model_name)
